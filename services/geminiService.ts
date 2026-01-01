@@ -1,9 +1,9 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const consultLoan = async (prompt: string, extraContext: string = "") => {
+  // 호출 시점에 인스턴스를 생성하여 API_KEY 주입 보장
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = "gemini-3-pro-preview";
   
   const systemInstruction = `
@@ -41,6 +41,7 @@ export const consultLoan = async (prompt: string, extraContext: string = "") => 
 };
 
 export const fetchLatestNews = async () => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = "gemini-3-flash-preview";
   const prompt = `최근 7일간의 '부동산 대출 규제', 'LTV DSR 정책', '농협 여신 관련 뉴스' 5개를 제목과 짧은 요약(3줄 이내)으로 정리해줘. 가독성을 위해 불필요한 특수문자는 제거해.`;
 
