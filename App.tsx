@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Layout } from './components/Layout';
 import { TodoItem, PropertyDetail, LoanState, ScheduleItem, NewsItem, AdminFile } from './types';
@@ -17,10 +16,21 @@ const App: React.FC = () => {
   const [adminFiles, setAdminFiles] = useState<AdminFile[]>([]);
   const [extraContext, setExtraContext] = useState("");
 
-  // 대시보드 상태 로컬스토리지 동기화
-  const [todos, setTodos] = useState<TodoItem[]>(JSON.parse(localStorage.getItem('nh_todos_v3_8') || '[]'));
-  const [schedules, setSchedules] = useState<ScheduleItem[]>(JSON.parse(localStorage.getItem('nh_schedules_v3_8') || '[]'));
-  const [accumulatedNews, setAccumulatedNews] = useState<NewsItem[]>(JSON.parse(localStorage.getItem('nh_news_v3_8') || '[]'));
+  // 로컬스토리지 안전 파싱 함수
+  const safeParse = (key: string, fallback: any) => {
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : fallback;
+    } catch (e) {
+      console.error(`Error parsing ${key}:`, e);
+      return fallback;
+    }
+  };
+
+  // 대시보드 상태 초기화 (안전한 방식)
+  const [todos, setTodos] = useState<TodoItem[]>(() => safeParse('nh_todos_v3_8', []));
+  const [schedules, setSchedules] = useState<ScheduleItem[]>(() => safeParse('nh_schedules_v3_8', []));
+  const [accumulatedNews, setAccumulatedNews] = useState<NewsItem[]>(() => safeParse('nh_news_v3_8', []));
   const [todoInput, setTodoInput] = useState("");
 
   // 여신 상태
@@ -45,10 +55,8 @@ const App: React.FC = () => {
     purpose: "주택구입자금"
   });
 
-  // 상세 팝업(모달) 제어 상태
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
 
-  // 상단 대시보드 인용구
   const activeQuote = useMemo(() => QUOTES[Math.floor(Math.random() * QUOTES.length)], []);
 
   useEffect(() => {
@@ -154,10 +162,8 @@ const App: React.FC = () => {
     return processedProperties.find(p => p.id === selectedPropertyId);
   }, [selectedPropertyId, processedProperties]);
 
-  // 배너 시간 포맷: 2026년 1월 2일 18:21
   const bannerTimeStr = `${currentTime.getFullYear()}년 ${currentTime.getMonth() + 1}월 ${currentTime.getDate()}일 ${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`;
 
-  // 관리자 모드 토글 (비밀번호 확인 로직 포함)
   const handleToggleAdmin = () => {
     if (!isAdmin) {
       const password = prompt("관리자 비밀번호를 입력하세요 (기본: 0000):");
@@ -244,7 +250,7 @@ const App: React.FC = () => {
                       seniorDeduction: 0 
                     }]
                   }));
-                  setSelectedPropertyId(newId); // 담보 추가 시 즉시 모달 팝업
+                  setSelectedPropertyId(newId);
                 }}
                 className="bg-green-600 text-white px-8 py-5 rounded-[2rem] text-[13px] font-black shadow-xl shadow-green-100 hover:scale-105 active:scale-95 transition-all"
               >
