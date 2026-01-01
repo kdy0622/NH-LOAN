@@ -1,5 +1,7 @@
 {
   "name": "NH 여신 파트너",
   "description": "농협 전용 전국 단위 여신 상담 및 시뮬레이션 통합 대시보드",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "geolocation"
+  ]
 }

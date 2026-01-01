@@ -24,9 +24,9 @@ const App: React.FC = () => {
     }
   };
 
-  const [todos, setTodos] = useState<TodoItem[]>(() => safeParse('nh_todos_v4_0', []));
-  const [schedules, setSchedules] = useState<ScheduleItem[]>(() => safeParse('nh_schedules_v4_0', []));
-  const [accumulatedNews, setAccumulatedNews] = useState<NewsItem[]>(() => safeParse('nh_news_v4_0', []));
+  const [todos, setTodos] = useState<TodoItem[]>(() => safeParse('nh_todos_v5_0', []));
+  const [schedules, setSchedules] = useState<ScheduleItem[]>(() => safeParse('nh_schedules_v5_0', []));
+  const [accumulatedNews, setAccumulatedNews] = useState<NewsItem[]>(() => safeParse('nh_news_v5_0', []));
   const [todoInput, setTodoInput] = useState("");
 
   const [loanState, setLoanState] = useState<LoanState>({
@@ -40,18 +40,7 @@ const App: React.FC = () => {
     annualIncome: 0
   });
 
-  const [docConfig, setDocConfig] = useState({
-    propertyType: "주택(아파트/연립)",
-    borrowerType: "개인",
-    job: "근로자",
-    income: "근로소득",
-    isTrade: "매매(구입)",
-    purpose: "주택구입자금"
-  });
-
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
-
-  const activeQuote = useMemo(() => QUOTES[Math.floor(Math.random() * QUOTES.length)], []);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -60,9 +49,9 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('nh_todos_v4_0', JSON.stringify(todos));
-    localStorage.setItem('nh_schedules_v4_0', JSON.stringify(schedules));
-    localStorage.setItem('nh_news_v4_0', JSON.stringify(accumulatedNews));
+    localStorage.setItem('nh_todos_v5_0', JSON.stringify(todos));
+    localStorage.setItem('nh_schedules_v5_0', JSON.stringify(schedules));
+    localStorage.setItem('nh_news_v5_0', JSON.stringify(accumulatedNews));
   }, [todos, schedules, accumulatedNews]);
 
   const handleFetchNews = async () => {
@@ -80,13 +69,12 @@ const App: React.FC = () => {
 
   const handleAiConsult = async () => {
     if (!chatInput.trim()) return;
-    const currentInput = chatInput;
-    setChatInput("");
     setLoading(true);
     try {
-      const res = await consultLoan(currentInput, extraContext);
+      const res = await consultLoan(chatInput, extraContext);
       setAiResponse(res);
-    } catch (e) { setAiResponse("AI 연결 오류입니다."); } finally { setLoading(false); }
+      setChatInput("");
+    } catch (e) { setAiResponse("AI 연결 오류가 발생했습니다."); } finally { setLoading(false); }
   };
 
   const processedProperties = useMemo(() => {
@@ -101,85 +89,80 @@ const App: React.FC = () => {
 
   const handleToggleAdmin = () => {
     if (!isAdmin) {
-      const password = prompt("관리자 비밀번호 (0000):");
+      const password = prompt("비밀번호 (0000):");
       if (password === "0000") setIsAdmin(true);
     } else setIsAdmin(false);
   };
 
   const bannerTimeStr = `${currentTime.getFullYear()}년 ${currentTime.getMonth() + 1}월 ${currentTime.getDate()}일 ${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`;
-
-  // 카카오맵 검색 주소 생성
   const mapSearchUrl = `https://map.kakao.com/?q=${loanState.city} ${loanState.district} ${loanState.neighborhood} ${loanState.village}`;
 
   return (
     <Layout isAdmin={isAdmin} onToggleAdmin={handleToggleAdmin}>
-      {/* 좁은 배너 디자인 - 밀도 향상 */}
-      <div className="mb-4 bg-gradient-to-r from-[#009a44] to-[#004a99] px-6 py-4 rounded-2xl text-white shadow-lg flex justify-between items-center no-print">
-        <div className="flex gap-4 items-center">
-          <div className="text-left">
-            <h2 className="text-xl font-black tracking-tight">{bannerTimeStr}</h2>
-            <p className="text-[9px] font-bold opacity-60 uppercase tracking-widest">Administrative Center</p>
-          </div>
-          <div className="h-8 w-px bg-white/20 hidden md:block"></div>
-          <p className="text-sm font-medium italic opacity-90 hidden lg:block">"{activeQuote.text}"</p>
+      {/* 초밀착 배너 - 높이 대폭 축소 */}
+      <div className="mb-3 bg-gradient-to-r from-[#009a44] to-[#004a99] px-4 py-2 rounded-xl text-white shadow-md flex justify-between items-center no-print">
+        <div className="flex items-center gap-4">
+          <h2 className="text-lg font-black tracking-tighter">{bannerTimeStr}</h2>
+          <div className="h-4 w-px bg-white/20 hidden md:block"></div>
+          <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest hidden sm:block">NH PRO DASHBOARD</p>
         </div>
-        <div className="bg-white/10 px-4 py-2 rounded-xl backdrop-blur-sm border border-white/10 text-right">
-          <p className="text-[9px] font-black opacity-60 uppercase mb-0.5">Total Limit</p>
-          <p className="text-xl font-black">{formatNum(totalLimit)} <span className="text-xs opacity-60 font-medium">천원</span></p>
+        <div className="flex items-center gap-3">
+          <p className="text-[9px] font-black opacity-60 uppercase text-right leading-none">Total<br/>Limit</p>
+          <p className="text-xl font-black">{formatNum(totalLimit)} <span className="text-[10px] opacity-60 font-medium">천원</span></p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-        {/* 메인 심사 구역 */}
-        <div className="xl:col-span-8 space-y-4">
-          <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 no-print">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-black text-gray-800 flex items-center gap-2">
-                <span className="w-8 h-8 bg-green-50 text-green-700 rounded-lg flex items-center justify-center text-xl">🌍</span>
-                소재지 심사 및 물건 관리
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
+        {/* 심사 섹션 (Left) */}
+        <div className="xl:col-span-8 space-y-3">
+          <section className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 no-print">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-black text-gray-800 flex items-center gap-2">
+                <span className="w-6 h-6 bg-green-50 text-green-700 rounded-md flex items-center justify-center text-sm font-bold">🌍</span>
+                소재지 심사
               </h3>
               <button onClick={() => {
                 const newId = Date.now().toString();
                 setLoanState(prev => ({...prev, properties: [...prev.properties, { id: newId, lotNumber: '', usage: '', majorCategory: '주택', minorCategory: '아파트', appraisalValue: 0, itemLtv: 70, seniorDeduction: 0 }]}));
                 setSelectedPropertyId(newId);
-              }} className="bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-black shadow-md hover:bg-green-700">+ 담보 추가</button>
+              }} className="bg-green-600 text-white px-3 py-1.5 rounded-md text-[10px] font-black shadow-sm hover:bg-green-700 transition-colors">+ 추가</button>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
-              <select className="p-3 bg-white border border-gray-200 rounded-lg text-xs font-bold" value={loanState.city} onChange={e => setLoanState({...loanState, city: e.target.value, district: Object.keys(REGIONS[e.target.value])[0]})}>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
+              <select className="p-2 bg-white border border-gray-200 rounded-md text-[11px] font-bold" value={loanState.city} onChange={e => setLoanState({...loanState, city: e.target.value, district: Object.keys(REGIONS[e.target.value])[0]})}>
                 {Object.keys(REGIONS).map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-              <select className="p-3 bg-white border border-gray-200 rounded-lg text-xs font-bold" value={loanState.district} onChange={e => setLoanState({...loanState, district: e.target.value})}>
+              <select className="p-2 bg-white border border-gray-200 rounded-md text-[11px] font-bold" value={loanState.district} onChange={e => setLoanState({...loanState, district: e.target.value, neighborhood: REGIONS[loanState.city][e.target.value][0]})}>
                 {Object.keys(REGIONS[loanState.city] || {}).map(d => <option key={d} value={d}>{d}</option>)}
               </select>
-              <select className="p-3 bg-white border border-gray-200 rounded-lg text-xs font-bold" value={loanState.neighborhood} onChange={e => setLoanState({...loanState, neighborhood: e.target.value})}>
-                {REGIONS[loanState.city][loanState.district]?.map(n => <option key={n} value={n}>{n}</option>)}
+              <select className="p-2 bg-white border border-gray-200 rounded-md text-[11px] font-bold" value={loanState.neighborhood} onChange={e => setLoanState({...loanState, neighborhood: e.target.value})}>
+                {(REGIONS[loanState.city] && REGIONS[loanState.city][loanState.district])?.map(n => <option key={n} value={n}>{n}</option>)}
               </select>
-              <select className="p-3 bg-white border border-gray-200 rounded-lg text-xs font-bold" value={loanState.village} onChange={e => setLoanState({...loanState, village: e.target.value})}>
-                <option value="">- 리 선택 -</option>
+              <select className="p-2 bg-white border border-gray-200 rounded-md text-[11px] font-bold" value={loanState.village} onChange={e => setLoanState({...loanState, village: e.target.value})} disabled={!VILLAGES[loanState.neighborhood]}>
+                <option value="">- 리(Ri) 선택 -</option>
                 {VILLAGES[loanState.neighborhood]?.map(v => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-gray-100">
-              <table className="w-full text-xs">
-                <thead className="bg-gray-50 text-gray-400 font-black uppercase tracking-tighter">
+            <div className="overflow-x-auto rounded-lg border border-gray-100">
+              <table className="w-full text-[11px]">
+                <thead className="bg-gray-50 text-gray-400 font-black uppercase tracking-tighter border-b border-gray-100">
                   <tr>
-                    <th className="p-3 text-left">지번/호수</th>
-                    <th className="p-3 text-left">종류</th>
-                    <th className="p-3 text-right">감정가</th>
-                    <th className="p-3 text-center">LTV</th>
-                    <th className="p-3 text-right text-green-700">심사한도</th>
+                    <th className="p-2 text-left">지번/호수</th>
+                    <th className="p-2 text-left">종류</th>
+                    <th className="p-2 text-right">감정가</th>
+                    <th className="p-2 text-center">LTV</th>
+                    <th className="p-2 text-right text-green-700">심사한도</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {processedProperties.map(p => (
-                    <tr key={p.id} onClick={() => setSelectedPropertyId(p.id)} className="cursor-pointer hover:bg-green-50 transition-all">
-                      <td className="p-3 font-bold text-gray-800">{p.lotNumber || '(미입력)'}</td>
-                      <td className="p-3 text-[10px] text-gray-400 font-black">{p.minorCategory}</td>
-                      <td className="p-3 text-right font-bold">{formatNum(p.appraisalValue)}</td>
-                      <td className="p-3 text-center font-bold text-blue-600">{p.itemLtv}%</td>
-                      <td className="p-3 text-right font-black text-green-700">{formatNum(p.finalAmt)}</td>
+                    <tr key={p.id} onClick={() => setSelectedPropertyId(p.id)} className="cursor-pointer hover:bg-green-50 transition-all group">
+                      <td className="p-2 font-bold text-gray-700">{p.lotNumber || '(미입력)'}</td>
+                      <td className="p-2 text-[10px] text-gray-400 font-bold">{p.minorCategory}</td>
+                      <td className="p-2 text-right font-bold">{formatNum(p.appraisalValue)}</td>
+                      <td className="p-2 text-center font-bold text-blue-600">{p.itemLtv}%</td>
+                      <td className="p-2 text-right font-black text-green-700 group-hover:underline">{formatNum(p.finalAmt)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -187,92 +170,85 @@ const App: React.FC = () => {
             </div>
           </section>
 
-          {/* 지도 뷰 (카카오맵 통합) */}
-          <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 no-print overflow-hidden">
-            <h3 className="text-lg font-black text-gray-800 flex items-center gap-2 mb-4">
-              <span className="w-8 h-8 bg-blue-50 text-blue-700 rounded-lg flex items-center justify-center text-xl">🗺️</span>
-              물건 소재지 현황 (카카오맵)
+          <section className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 no-print">
+            <h3 className="text-sm font-black text-gray-800 flex items-center gap-2 mb-3">
+              <span className="w-6 h-6 bg-blue-50 text-blue-700 rounded-md flex items-center justify-center text-sm">🗺️</span>
+              물건 소재지 현황
             </h3>
-            <div className="w-full h-[300px] bg-gray-100 rounded-xl relative">
+            <div className="w-full h-[240px] rounded-lg overflow-hidden border border-gray-100">
               <iframe 
                 src={mapSearchUrl}
-                className="w-full h-full rounded-xl border-none"
-                title="kakao-map"
+                className="w-full h-full border-none grayscale-[0.2] hover:grayscale-0 transition-all"
+                title="kakao-map-integration"
               ></iframe>
-              <a href={mapSearchUrl} target="_blank" rel="noreferrer" className="absolute top-2 right-2 bg-white/90 px-3 py-1 rounded-lg text-[10px] font-black text-blue-600 shadow-sm border border-blue-100">카카오맵 크게보기</a>
             </div>
           </section>
 
-          {/* AI 컨설팅 솔루션 */}
-          <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 no-print">
-            <h3 className="text-lg font-black text-green-800 flex items-center gap-2 mb-4">
-              <span className="w-8 h-8 bg-green-600 text-white rounded-lg flex items-center justify-center text-sm font-black">AI</span>
-              NH 여신 전문 컨설팅
+          <section className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 no-print">
+            <h3 className="text-sm font-black text-green-800 flex items-center gap-2 mb-3">
+              <span className="w-6 h-6 bg-green-600 text-white rounded-md flex items-center justify-center text-[10px] font-black">AI</span>
+              여신 심사 분석
             </h3>
-            <div className={`bg-gray-50 rounded-xl p-6 border border-gray-100 mb-4 ${aiResponse ? 'h-auto' : 'h-32 flex items-center justify-center'}`}>
-              {aiResponse ? (
-                <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{aiResponse}</div>
-              ) : (
-                <p className="text-xs text-gray-400 font-bold">심사 요청을 입력해주세요.</p>
-              )}
+            <div className={`bg-gray-50 rounded-lg p-4 border border-gray-100 mb-3 text-xs leading-relaxed text-gray-700 ${aiResponse ? 'min-h-[60px]' : 'min-h-[60px] flex items-center justify-center text-gray-300'}`}>
+              {aiResponse || "분석 요청을 입력하세요."}
             </div>
             <div className="relative">
-              <input type="text" className="w-full p-4 bg-white border-2 border-gray-100 rounded-xl text-sm font-bold shadow-sm focus:border-green-600 outline-none pr-16" placeholder="전문가에게 심사 분석 요청..." value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAiConsult()} />
-              <button onClick={handleAiConsult} disabled={loading} className="absolute right-2 top-2 w-12 h-12 bg-green-600 text-white rounded-lg flex items-center justify-center shadow-lg hover:bg-green-700 transition-all">{loading ? '..' : '→'}</button>
+              <input type="text" className="w-full p-3 bg-white border border-gray-200 rounded-lg text-xs font-bold shadow-inner focus:border-green-600 outline-none pr-12" placeholder="한도 분석 또는 규정 질문..." value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAiConsult()} />
+              <button onClick={handleAiConsult} disabled={loading} className="absolute right-1.5 top-1.5 w-9 h-9 bg-green-600 text-white rounded-md flex items-center justify-center shadow-md hover:bg-green-700 transition-all">{loading ? '..' : '→'}</button>
             </div>
           </section>
         </div>
 
-        {/* 사이드바 - 밀도 높인 위젯들 */}
-        <div className="xl:col-span-4 space-y-4 no-print">
-          <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-            <h3 className="text-sm font-black text-gray-800 mb-4">🗓️ 여신 스케줄러</h3>
-            <div className="space-y-2 mb-4">
+        {/* 위젯 섹션 (Right) */}
+        <div className="xl:col-span-4 space-y-3 no-print">
+          <section className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3">🗓️ 여신 스케줄</h3>
+            <div className="space-y-1.5 mb-3">
               <div className="flex gap-1">
-                <input type="date" className="flex-1 p-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold" id="cal-date" />
+                <input type="date" className="flex-1 p-1.5 bg-gray-50 border border-gray-100 rounded text-[10px] font-bold" id="cal-date-compact" />
                 <button onClick={() => {
-                  const d = (document.getElementById('cal-date') as HTMLInputElement).value;
-                  const t = prompt("일정:");
+                  const d = (document.getElementById('cal-date-compact') as HTMLInputElement).value;
+                  const t = prompt("일정명:");
                   if(d && t) setSchedules([{id:Date.now().toString(), date:d, title:t}, ...schedules]);
-                }} className="bg-green-600 text-white px-3 rounded-lg text-[10px] font-black">등록</button>
+                }} className="bg-green-600 text-white px-2 rounded text-[10px] font-black">등록</button>
               </div>
-              <div className="space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
+              <div className="space-y-1 max-h-24 overflow-y-auto custom-scrollbar">
                 {schedules.map(s => (
-                  <div key={s.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-100">
-                    <span className="text-[9px] font-black text-green-600">{s.date}</span>
-                    <span className="text-[10px] font-bold text-gray-700 truncate flex-1">{s.title}</span>
+                  <div key={s.id} className="flex items-center gap-2 p-1.5 bg-gray-50/50 rounded border border-gray-50">
+                    <span className="text-[9px] font-black text-green-600 whitespace-nowrap">{s.date.slice(-5)}</span>
+                    <span className="text-[10px] font-bold text-gray-700 truncate">{s.title}</span>
                   </div>
                 ))}
               </div>
             </div>
           </section>
 
-          <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-            <h3 className="text-sm font-black text-gray-800 mb-4 flex justify-between">
-              <span>✅ 업무 체크리스트</span>
-              <span className="text-[10px] opacity-40">{todos.filter(t=>t.completed).length}/{todos.length}</span>
+          <section className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 flex justify-between">
+              <span>✅ 체크리스트</span>
+              <span>{todos.filter(t=>t.completed).length}/{todos.length}</span>
             </h3>
-            <div className="space-y-1 mb-3 max-h-40 overflow-y-auto custom-scrollbar">
+            <div className="space-y-1 mb-2 max-h-32 overflow-y-auto custom-scrollbar">
               {todos.map(todo => (
-                <div key={todo.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg transition-all group cursor-pointer" onClick={() => setTodos(todos.map(t => t.id === todo.id ? {...t, completed: !t.completed} : t))}>
-                  <input type="checkbox" checked={todo.completed} className="w-3.5 h-3.5 accent-green-600" readOnly />
-                  <span className={`text-[11px] font-bold flex-1 ${todo.completed ? 'line-through text-gray-300' : 'text-gray-600'}`}>{todo.text}</span>
+                <div key={todo.id} className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded transition-all group cursor-pointer" onClick={() => setTodos(todos.map(t => t.id === todo.id ? {...t, completed: !t.completed} : t))}>
+                  <input type="checkbox" checked={todo.completed} className="w-3 h-3 accent-green-600" readOnly />
+                  <span className={`text-[10px] font-bold flex-1 truncate ${todo.completed ? 'line-through text-gray-300' : 'text-gray-600'}`}>{todo.text}</span>
                 </div>
               ))}
             </div>
-            <input type="text" className="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold outline-none focus:border-green-500" placeholder="+ 추가 (Enter)" value={todoInput} onChange={e => setTodoInput(e.target.value)} onKeyDown={e => {
+            <input type="text" className="w-full p-2 bg-gray-50 border border-gray-100 rounded text-[10px] font-bold outline-none" placeholder="+ 추가 후 Enter" value={todoInput} onChange={e => setTodoInput(e.target.value)} onKeyDown={e => {
               if(e.key === 'Enter' && todoInput.trim()) {
-                setTodos([...todos, { id: Date.now().toString(), text: todoInput, completed: false }]);
+                setTodos([{ id: Date.now().toString(), text: todoInput, completed: false }, ...todos]);
                 setTodoInput("");
               }
             }} />
           </section>
 
-          <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-            <h3 className="text-sm font-black text-gray-800 mb-4">🔗 여신 심사 도구함</h3>
-            <div className="grid grid-cols-2 gap-2">
+          <section className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3">🔗 심사 도구</h3>
+            <div className="grid grid-cols-2 gap-1.5">
               {EXTERNAL_LINKS.map(link => (
-                <a key={link.name} href={link.url} target="_blank" rel="noreferrer" className="p-3 bg-gray-50/80 border border-gray-100 rounded-xl text-[10px] font-black text-gray-500 text-center hover:bg-green-600 hover:text-white transition-all shadow-sm">
+                <a key={link.name} href={link.url} target="_blank" rel="noreferrer" className="p-2 bg-gray-50/80 border border-gray-100 rounded text-[9px] font-black text-gray-500 text-center hover:bg-green-600 hover:text-white transition-all">
                   {link.name}
                 </a>
               ))}
@@ -281,68 +257,64 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* 담보 상세 모달 */}
+      {/* 담보 설정 모달 */}
       {selectedPropertyId && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 no-print animate-fade-in">
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border-t-8 border-green-600">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h3 className="text-lg font-black text-gray-800">담보 상세 설정</h3>
-              <button onClick={() => setSelectedPropertyId(null)} className="text-gray-400 hover:text-red-500 text-2xl font-bold">×</button>
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in no-print">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border-t-8 border-green-600 overflow-hidden">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="text-sm font-black text-gray-800">담보 정보 입력</h3>
+              <button onClick={() => setSelectedPropertyId(null)} className="text-gray-400 hover:text-red-500 text-xl font-bold">×</button>
             </div>
-            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
-              {processedProperties.find(p => p.id === selectedPropertyId) && (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase">지번/호수</label>
-                      <input type="text" className="w-full p-3 bg-gray-50 rounded-lg text-xs font-bold" value={processedProperties.find(p => p.id === selectedPropertyId)?.lotNumber} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === selectedPropertyId ? {...p, lotNumber: e.target.value} : p)})} />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase">용도</label>
-                      <input type="text" className="w-full p-3 bg-gray-50 rounded-lg text-xs font-bold" value={processedProperties.find(p => p.id === selectedPropertyId)?.usage} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === selectedPropertyId ? {...p, usage: e.target.value} : p)})} />
-                    </div>
+            <div className="p-5 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-gray-400 uppercase">지번/호수</label>
+                  <input type="text" className="w-full p-2 bg-gray-50 border border-gray-100 rounded text-xs font-bold" value={loanState.properties.find(p=>p.id===selectedPropertyId)?.lotNumber} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p=>p.id===selectedPropertyId?{...p,lotNumber:e.target.value}:p)})} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-gray-400 uppercase">용도</label>
+                  <input type="text" className="w-full p-2 bg-gray-50 border border-gray-100 rounded text-xs font-bold" value={loanState.properties.find(p=>p.id===selectedPropertyId)?.usage} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p=>p.id===selectedPropertyId?{...p,usage:e.target.value}:p)})} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-gray-400 uppercase">대분류</label>
+                  <select className="w-full p-2 bg-gray-50 border border-gray-100 rounded text-xs font-bold" value={loanState.properties.find(p=>p.id===selectedPropertyId)?.majorCategory} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p=>p.id===selectedPropertyId?{...p,majorCategory:e.target.value,minorCategory:MINOR_CATEGORIES[e.target.value][0]}:p)})}>
+                    {MAJOR_CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-gray-400 uppercase">소분류</label>
+                  <select className="w-full p-2 bg-gray-50 border border-gray-100 rounded text-xs font-bold" value={loanState.properties.find(p=>p.id===selectedPropertyId)?.minorCategory} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p=>p.id===selectedPropertyId?{...p,minorCategory:e.target.value}:p)})}>
+                    {MINOR_CATEGORIES[loanState.properties.find(p=>p.id===selectedPropertyId)?.majorCategory || '주택']?.map(c=><option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="bg-green-50 p-3 rounded-xl space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-green-700">감정평가액 (천원)</label>
+                  <input type="number" className="w-full p-3 bg-white border border-green-100 rounded-lg text-lg font-black text-green-900" value={loanState.properties.find(p=>p.id===selectedPropertyId)?.appraisalValue || ""} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p=>p.id===selectedPropertyId?{...p,appraisalValue:Number(e.target.value)}:p)})} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-green-700">LTV (%)</label>
+                    <input type="number" className="w-full p-2 bg-white border border-green-100 rounded text-sm font-black" value={loanState.properties.find(p=>p.id===selectedPropertyId)?.itemLtv} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p=>p.id===selectedPropertyId?{...p,itemLtv:Number(e.target.value)}:p)})} />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase">대분류</label>
-                      <select className="w-full p-3 bg-gray-50 rounded-lg text-xs font-bold" value={processedProperties.find(p => p.id === selectedPropertyId)?.majorCategory} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === selectedPropertyId ? {...p, majorCategory: e.target.value, minorCategory: MINOR_CATEGORIES[e.target.value][0]} : p)})}>
-                        {MAJOR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase">소분류</label>
-                      <select className="w-full p-3 bg-gray-50 rounded-lg text-xs font-bold" value={processedProperties.find(p => p.id === selectedPropertyId)?.minorCategory} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === selectedPropertyId ? {...p, minorCategory: e.target.value} : p)})}>
-                        {MINOR_CATEGORIES[processedProperties.find(p => p.id === selectedPropertyId)?.majorCategory || '주택']?.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-red-700">방공제 (천원)</label>
+                    <input type="number" className="w-full p-2 bg-white border border-red-100 rounded text-sm font-black text-red-700" value={loanState.properties.find(p=>p.id===selectedPropertyId)?.seniorDeduction || ""} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p=>p.id===selectedPropertyId?{...p,seniorDeduction:Number(e.target.value)}:p)})} />
                   </div>
-                  <div className="bg-green-50 p-4 rounded-2xl space-y-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-green-700">감정평가액 (천원)</label>
-                      <input type="number" className="w-full p-4 bg-white rounded-xl text-xl font-black text-green-800" value={processedProperties.find(p => p.id === selectedPropertyId)?.appraisalValue || ""} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === selectedPropertyId ? {...p, appraisalValue: Number(e.target.value)} : p)})} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-black text-green-700">LTV (%)</label>
-                        <input type="number" className="w-full p-3 bg-white rounded-lg text-lg font-black" value={processedProperties.find(p => p.id === selectedPropertyId)?.itemLtv} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === selectedPropertyId ? {...p, itemLtv: Number(e.target.value)} : p)})} />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-black text-red-700">방공제 (천원)</label>
-                        <input type="number" className="w-full p-3 bg-white rounded-lg text-lg font-black" value={processedProperties.find(p => p.id === selectedPropertyId)?.seniorDeduction || ""} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === selectedPropertyId ? {...p, seniorDeduction: Number(e.target.value)} : p)})} />
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
+                </div>
+              </div>
             </div>
-            <div className="p-6 bg-gray-50 flex gap-4">
+            <div className="p-5 bg-gray-50 flex gap-2">
               <button onClick={() => {
-                if(confirm("삭제?")) {
-                  setLoanState({...loanState, properties: loanState.properties.filter(p => p.id !== selectedPropertyId)});
+                if(confirm("삭제하시겠습니까?")) {
+                  setLoanState({...loanState, properties: loanState.properties.filter(p=>p.id!==selectedPropertyId)});
                   setSelectedPropertyId(null);
                 }
-              }} className="flex-1 py-4 bg-white border border-red-100 text-red-500 rounded-xl font-black text-xs">삭제</button>
-              <button onClick={() => setSelectedPropertyId(null)} className="flex-[2] py-4 bg-green-600 text-white rounded-xl font-black text-xs shadow-lg shadow-green-100">설정 완료</button>
+              }} className="flex-1 py-2.5 bg-white border border-red-100 text-red-500 rounded-lg font-black text-[10px]">삭제</button>
+              <button onClick={() => setSelectedPropertyId(null)} className="flex-[2] py-2.5 bg-green-600 text-white rounded-lg font-black text-[10px] shadow-md hover:bg-green-700 transition-colors">저장 완료</button>
             </div>
           </div>
         </div>
