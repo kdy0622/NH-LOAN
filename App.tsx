@@ -17,10 +17,10 @@ const App: React.FC = () => {
   const [adminFiles, setAdminFiles] = useState<AdminFile[]>([]);
   const [extraContext, setExtraContext] = useState("");
 
-  // 대시보드 상태 복구
-  const [todos, setTodos] = useState<TodoItem[]>(JSON.parse(localStorage.getItem('nh_todos_v3_7') || '[]'));
-  const [schedules, setSchedules] = useState<ScheduleItem[]>(JSON.parse(localStorage.getItem('nh_schedules_v3_7') || '[]'));
-  const [accumulatedNews, setAccumulatedNews] = useState<NewsItem[]>(JSON.parse(localStorage.getItem('nh_news_v3_7') || '[]'));
+  // 대시보드 상태 로컬스토리지 동기화
+  const [todos, setTodos] = useState<TodoItem[]>(JSON.parse(localStorage.getItem('nh_todos_v3_8') || '[]'));
+  const [schedules, setSchedules] = useState<ScheduleItem[]>(JSON.parse(localStorage.getItem('nh_schedules_v3_8') || '[]'));
+  const [accumulatedNews, setAccumulatedNews] = useState<NewsItem[]>(JSON.parse(localStorage.getItem('nh_news_v3_8') || '[]'));
   const [todoInput, setTodoInput] = useState("");
 
   // 여신 상태
@@ -48,7 +48,7 @@ const App: React.FC = () => {
   // 상세 팝업(모달) 제어 상태
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
 
-  // 상단 대시보드에 표시할 오늘의 인용구 선정
+  // 상단 대시보드 인용구
   const activeQuote = useMemo(() => QUOTES[Math.floor(Math.random() * QUOTES.length)], []);
 
   useEffect(() => {
@@ -58,9 +58,9 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('nh_todos_v3_7', JSON.stringify(todos));
-    localStorage.setItem('nh_schedules_v3_7', JSON.stringify(schedules));
-    localStorage.setItem('nh_news_v3_7', JSON.stringify(accumulatedNews));
+    localStorage.setItem('nh_todos_v3_8', JSON.stringify(todos));
+    localStorage.setItem('nh_schedules_v3_8', JSON.stringify(schedules));
+    localStorage.setItem('nh_news_v3_8', JSON.stringify(accumulatedNews));
   }, [todos, schedules, accumulatedNews]);
 
   const handleFetchNews = async () => {
@@ -73,8 +73,11 @@ const App: React.FC = () => {
         timestamp: new Date().toLocaleDateString()
       }));
       setAccumulatedNews(newsItems);
-    } catch (e) { console.error(e); }
-    finally { setNewsLoading(false); }
+    } catch (e) { 
+      console.error(e); 
+    } finally { 
+      setNewsLoading(false); 
+    }
   };
 
   const handleAiConsult = async () => {
@@ -85,8 +88,11 @@ const App: React.FC = () => {
     try {
       const res = await consultLoan(currentInput, extraContext);
       setAiResponse(res);
-    } catch (e) { setAiResponse("상담 지연이 발생했습니다."); }
-    finally { setLoading(false); }
+    } catch (e) { 
+      setAiResponse("상담 엔진 연결에 실패했습니다. 잠시 후 다시 시도해주세요."); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,7 +105,7 @@ const App: React.FC = () => {
       const newFile = { id: Date.now().toString(), name: file.name, type: file.type, content };
       setAdminFiles([...adminFiles, newFile]);
       setExtraContext(prev => prev + `\n[관리자 지침 파일: ${file.name}]\n${content.substring(0, 5000)}`);
-      alert(`'${file.name}' 파일이 학습 데이터에 추가되었습니다.`);
+      alert(`'${file.name}' 파일의 내용을 AI 지침에 반영했습니다.`);
     };
     reader.readAsText(file);
   };
@@ -128,7 +134,7 @@ const App: React.FC = () => {
     docs.push({ category: "기본 공통 서류", items: ["신분증", "주민등록등본", "주민등록초본(주소변경 포함)", "인감증명서(2부) 및 도장"] });
     
     if (docConfig.borrowerType === "개인사업자") docs.push({ category: "사업자 서류", items: ["사업자등록증명원", "사업장 임대차계약서", "납세증명서(국세/지방세)"] });
-    else if (docConfig.borrowerType === "법인") docs.push({ category: "법인 서류", items: ["법인등기부본", "정관", "주주명부", "법인인감증명서", "대표자 신분증"] });
+    else if (docConfig.borrowerType === "법인") docs.push({ category: "법인 서류", items: ["법인등기부등본", "정관", "주주명부", "법인인감증명서", "대표자 신분증"] });
 
     const incomeItems = [];
     if (docConfig.job === "근로자") incomeItems.push("재직증명서", "근로소득원천징수영수증(최근2년)");
@@ -148,50 +154,54 @@ const App: React.FC = () => {
     return processedProperties.find(p => p.id === selectedPropertyId);
   }, [selectedPropertyId, processedProperties]);
 
-  // 배너 시간 포맷: 2026년 1월 2일 18:21 (요청 사양)
+  // 배너 시간 포맷: 2026년 1월 2일 18:21
   const bannerTimeStr = `${currentTime.getFullYear()}년 ${currentTime.getMonth() + 1}월 ${currentTime.getDate()}일 ${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`;
 
-  // 관리자 모드 토글 핸들러 (비밀번호 확인 추가)
+  // 관리자 모드 토글 (비밀번호 확인 로직 포함)
   const handleToggleAdmin = () => {
     if (!isAdmin) {
-      const password = prompt("관리자 비밀번호를 입력하세요:");
+      const password = prompt("관리자 비밀번호를 입력하세요 (기본: 0000):");
       if (password === "0000") {
         setIsAdmin(true);
       } else if (password !== null) {
-        alert("비밀번호가 올바르지 않습니다.");
+        alert("인증에 실패했습니다. 올바른 비밀번호를 입력해주세요.");
       }
     } else {
-      setIsAdmin(false);
+      if(confirm("관리자 모드를 종료하시겠습니까?")) {
+        setIsAdmin(false);
+      }
     }
   };
 
   return (
     <Layout isAdmin={isAdmin} onToggleAdmin={handleToggleAdmin}>
-      {/* 관리자 파일 업로드 패널 */}
+      {/* 관리자 업무 지침 패널 */}
       {isAdmin && (
         <div className="mb-8 bg-white p-10 rounded-[3rem] border-4 border-dashed border-red-200 animate-fade-in no-print shadow-xl">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-2xl font-black text-red-600 flex items-center gap-3">⚙️ 관리자 업무 지침 동기화</h3>
-            <span className="text-xs font-bold text-red-300">최신 규정집/금리표 업로드 시 AI가 우선 반영합니다</span>
+            <h3 className="text-2xl font-black text-red-600 flex items-center gap-3">⚙️ 관리자 규정 동기화</h3>
+            <span className="text-xs font-bold text-red-300">업로드된 파일은 AI 상담 시 최우선 근거가 됩니다</span>
           </div>
           <div className="flex flex-wrap gap-4">
             <label className="bg-red-600 text-white px-8 py-4 rounded-2xl text-[13px] font-black cursor-pointer hover:bg-red-700 transition-all shadow-lg shadow-red-100">
               규정 파일(.txt) 업로드
               <input type="file" className="hidden" accept=".txt" onChange={handleFileUpload} />
             </label>
-            <div className="flex-1 flex gap-3 overflow-x-auto py-2">
-              {adminFiles.map(f => (
+            <div className="flex-1 flex gap-3 overflow-x-auto py-2 custom-scrollbar">
+              {adminFiles.length > 0 ? adminFiles.map(f => (
                 <div key={f.id} className="bg-gray-50 px-5 py-3 rounded-xl border border-red-100 text-[11px] font-bold flex items-center gap-3 whitespace-nowrap">
                   📄 {f.name}
                   <button onClick={() => setAdminFiles(adminFiles.filter(x => x.id !== f.id))} className="text-red-300 hover:text-red-500">×</button>
                 </div>
-              ))}
+              )) : (
+                <p className="text-xs text-gray-300 flex items-center">학습된 추가 지침 파일이 없습니다.</p>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* 대시보드 메인 상단 */}
+      {/* 대시보드 상단 배너 */}
       <div className="mb-8 bg-gradient-to-br from-[#009a44] to-[#004a99] p-10 rounded-[3rem] text-white shadow-2xl flex flex-col md:flex-row justify-between items-center gap-8 no-print">
         <div className="text-center md:text-left">
           <h2 className="text-4xl font-black tracking-tighter drop-shadow-md leading-tight">
@@ -211,7 +221,7 @@ const App: React.FC = () => {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 pb-20">
         <div className="xl:col-span-8 space-y-8">
-          {/* 소재지 선택 시스템 */}
+          {/* 소재지 심사 선택 시스템 */}
           <section className="bg-white p-10 rounded-[3.5rem] shadow-sm border border-gray-100 no-print">
             <div className="flex justify-between items-center mb-10">
               <h3 className="text-2xl font-black text-gray-800 flex items-center gap-5">
@@ -234,7 +244,7 @@ const App: React.FC = () => {
                       seniorDeduction: 0 
                     }]
                   }));
-                  setSelectedPropertyId(newId);
+                  setSelectedPropertyId(newId); // 담보 추가 시 즉시 모달 팝업
                 }}
                 className="bg-green-600 text-white px-8 py-5 rounded-[2rem] text-[13px] font-black shadow-xl shadow-green-100 hover:scale-105 active:scale-95 transition-all"
               >
@@ -308,7 +318,7 @@ const App: React.FC = () => {
             </div>
           </section>
 
-          {/* AI 컨설턴트 솔루션 */}
+          {/* AI 컨설팅 솔루션 */}
           <section className="bg-white p-10 rounded-[3.5rem] shadow-sm border border-gray-100 flex flex-col h-auto no-print">
             <h3 className="text-2xl font-black text-green-800 flex items-center gap-5 mb-8">
               <span className="w-16 h-16 bg-green-600 text-white rounded-3xl flex items-center justify-center text-4xl shadow-xl shadow-green-100">AI</span>
@@ -323,7 +333,7 @@ const App: React.FC = () => {
               ) : (
                 <div className="text-center">
                   <p className="text-6xl mb-6 grayscale opacity-40">🏢</p>
-                  <p className="font-black text-gray-400 text-xl tracking-tight">규정 해석 및 한도 분석 요청을 입력하세요.</p>
+                  <p className="font-black text-gray-400 text-xl tracking-tight">지침 파일 분석 및 한도 심사 요청을 입력하세요.</p>
                 </div>
               )}
             </div>
@@ -340,53 +350,15 @@ const App: React.FC = () => {
               <button 
                 onClick={handleAiConsult}
                 disabled={loading}
-                className="absolute right-4 top-4 w-20 h-20 bg-green-600 text-white rounded-[2rem] flex items-center justify-center shadow-xl hover:scale-105 transition-all disabled:bg-gray-300"
+                className="absolute right-4 top-4 w-20 h-20 bg-green-600 text-white rounded-[2rem] flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all disabled:bg-gray-300"
               >
                 {loading ? '...' : <span className="text-2xl font-bold">→</span>}
               </button>
             </div>
           </section>
-
-          {/* 서류 생성기 */}
-          <section className="bg-white p-10 rounded-[3.5rem] shadow-sm border border-gray-100 no-print">
-            <h3 className="text-2xl font-black text-gray-800 flex items-center gap-5 mb-10">
-              <span className="w-16 h-16 bg-indigo-50 text-indigo-700 rounded-3xl flex items-center justify-center text-4xl shadow-sm">📑</span>
-              맞춤형 필수 구비서류 생성기
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10 bg-indigo-50/20 p-12 rounded-[3rem] border border-indigo-100/50">
-              {Object.keys(docConfig).map((key) => (
-                <div key={key} className="space-y-2">
-                  <label className="text-[11px] font-black text-indigo-400 px-1 uppercase tracking-widest">{key}</label>
-                  <select className="w-full p-4 bg-white border border-indigo-100 rounded-2xl text-sm font-bold shadow-sm" value={(docConfig as any)[key]} onChange={e => setDocConfig({...docConfig, [key]: e.target.value})}>
-                    {(DOC_OPTIONS as any)[key + 's']?.map((o: string) => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                </div>
-              ))}
-              <div className="flex items-end">
-                <button onClick={() => window.print()} className="w-full py-5 bg-indigo-600 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all">확인 후 PDF 다운로드</button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {generatedDocs.map(cat => (
-                <div key={cat.category} className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm hover:border-indigo-200 transition-all group">
-                  <h4 className="text-lg font-black text-gray-800 mb-6 border-l-8 border-indigo-500 pl-4">{cat.category}</h4>
-                  <ul className="space-y-4">
-                    {cat.items.map(item => (
-                      <li key={item} className="flex items-start gap-4 text-sm font-bold text-gray-500 group-hover:text-gray-700 transition-colors">
-                        <span className="w-6 h-6 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center text-[11px] mt-0.5 shadow-sm">✓</span>
-                        <span className="flex-1 leading-relaxed">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </section>
         </div>
 
-        {/* 사이드바 */}
+        {/* 사이드바 영역 */}
         <div className="xl:col-span-4 space-y-8 no-print">
           <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
             <h3 className="text-xl font-black text-gray-800 mb-6 flex items-center gap-3">🗓️ 여신 스케줄러</h3>
@@ -397,14 +369,14 @@ const App: React.FC = () => {
                   const d = (document.getElementById('cal-date') as HTMLInputElement).value;
                   const t = prompt("일정을 입력하세요:");
                   if(d && t) setSchedules([{ id: Date.now().toString(), date: d, title: t }, ...schedules]);
-                }} className="bg-green-600 text-white px-4 rounded-xl text-xs font-black">등록</button>
+                }} className="bg-green-600 text-white px-4 rounded-xl text-xs font-black hover:bg-green-700 transition-colors">등록</button>
               </div>
               <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
                 {schedules.length > 0 ? schedules.map(s => (
                   <div key={s.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
                     <span className="text-[10px] font-black text-green-600">{s.date}</span>
                     <span className="text-xs font-bold text-gray-700 truncate flex-1">{s.title}</span>
-                    <button onClick={() => setSchedules(schedules.filter(x => x.id !== s.id))} className="text-gray-300 hover:text-red-500">×</button>
+                    <button onClick={() => setSchedules(schedules.filter(x => x.id !== s.id))} className="text-gray-300 hover:text-red-500 transition-colors">×</button>
                   </div>
                 )) : <p className="text-[10px] text-gray-300 text-center py-4">예정된 일정이 없습니다</p>}
               </div>
@@ -419,8 +391,9 @@ const App: React.FC = () => {
             <div className="space-y-2 mb-4 max-h-48 overflow-y-auto custom-scrollbar">
               {todos.map(todo => (
                 <div key={todo.id} className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-all group">
-                  <input type="checkbox" checked={todo.completed} onChange={() => setTodos(todos.map(t => t.id === todo.id ? {...t, completed: !t.completed} : t))} className="w-5 h-5 accent-green-600" />
-                  <span className={`text-sm font-bold flex-1 ${todo.completed ? 'line-through text-gray-300' : 'text-gray-600'}`}>{todo.text}</span>
+                  <input type="checkbox" checked={todo.completed} onChange={() => setTodos(todos.map(t => t.id === todo.id ? {...t, completed: !t.completed} : t))} className="w-5 h-5 accent-green-600 cursor-pointer" />
+                  <span className={`text-sm font-bold flex-1 cursor-pointer ${todo.completed ? 'line-through text-gray-300' : 'text-gray-600'}`} onClick={() => setTodos(todos.map(t => t.id === todo.id ? {...t, completed: !t.completed} : t))}>{todo.text}</span>
+                  <button onClick={() => setTodos(todos.filter(x => x.id !== todo.id))} className="text-gray-200 group-hover:text-red-300 transition-colors">×</button>
                 </div>
               ))}
             </div>
@@ -433,29 +406,7 @@ const App: React.FC = () => {
           </section>
 
           <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-            <div className="flex justify-between items-center mb-8">
-              <h3 className="text-xl font-black text-gray-800">🗞️ 실시간 여신 동향</h3>
-              <button onClick={handleFetchNews} disabled={newsLoading} className="text-[11px] font-bold text-green-600 bg-green-50 px-3 py-1 rounded-lg hover:bg-green-100 transition-colors">
-                {newsLoading ? '...' : '새로고침'}
-              </button>
-            </div>
-            <div className="space-y-4">
-              {accumulatedNews.map(item => (
-                <div key={item.id} className="p-5 bg-gray-50/80 rounded-[2rem] border border-gray-100 hover:border-green-300 hover:bg-white transition-all group shadow-sm">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-[10px] text-gray-400 font-black tracking-widest">{item.timestamp}</span>
-                    <span className="w-2 h-2 bg-green-500 rounded-full group-hover:animate-ping"></span>
-                  </div>
-                  <div className="text-sm font-bold text-gray-700 leading-relaxed group-hover:text-gray-900 transition-colors">
-                    {item.content}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-            <h3 className="text-xl font-black text-gray-800 mb-8">🔗 여신 심사 도구함</h3>
+            <h3 className="text-xl font-black text-gray-800 mb-8">🔗 심사 지원 도구함</h3>
             <div className="grid grid-cols-2 gap-4">
               {EXTERNAL_LINKS.map(link => (
                 <a key={link.name} href={link.url} target="_blank" rel="noreferrer" className="p-5 bg-gray-50/50 border border-gray-100 rounded-2xl text-[12px] font-black text-gray-500 text-center hover:bg-green-600 hover:text-white hover:shadow-xl hover:translate-y-[-2px] transition-all">
@@ -467,58 +418,14 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* 인쇄용 뷰 */}
-      <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-20 font-sans">
-        <div className="max-w-4xl mx-auto">
-          <header className="border-b-[10px] border-green-600 pb-10 mb-16 flex justify-between items-end">
-            <div>
-              <h1 className="text-5xl font-black text-gray-900 mb-4 tracking-tighter">NH 여신 상담 안내장</h1>
-              <p className="text-lg text-gray-400 font-bold uppercase tracking-widest">Administrative Support Document</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xl font-black text-green-700">NH 여신 파트너 Pro v3.8</p>
-              <p className="text-sm text-gray-400 font-bold mt-2">일시: {bannerTimeStr}</p>
-            </div>
-          </header>
-          
-          <div className="mb-16 bg-gray-50 p-12 rounded-[3rem] grid grid-cols-2 gap-10 text-lg leading-relaxed shadow-inner">
-            <p><strong>심사 소재지:</strong> {loanState.city} {loanState.district} {loanState.neighborhood} {loanState.village}</p>
-            <p><strong>차주 성격:</strong> {docConfig.borrowerType} ({docConfig.job})</p>
-            <p><strong>자금 용도:</strong> {docConfig.purpose}</p>
-            <p><strong>상담 한도:</strong> {formatNum(totalLimit)} 천원</p>
-          </div>
-
-          <div className="space-y-16">
-            {generatedDocs.map(cat => (
-              <div key={cat.category}>
-                <h3 className="text-3xl font-black text-gray-800 mb-10 border-b-4 border-gray-100 pb-4">{cat.category}</h3>
-                <ul className="grid grid-cols-1 gap-6">
-                  {cat.items.map(item => (
-                    <li key={item} className="flex items-center gap-6 text-xl text-gray-700">
-                      <div className="w-8 h-8 border-4 border-gray-300 rounded-lg"></div>
-                      <span className="font-bold">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          <footer className="mt-24 pt-12 border-t-2 border-gray-100 text-center">
-            <p className="text-xl font-black text-gray-400 mb-4">"당신의 성장을 지원하는 든든한 파트너, NH농협"</p>
-            <p className="text-xs text-gray-300 font-bold">본 서류는 상담용이며 실제 승인 여부는 내부 심사 기준에 따릅니다.</p>
-          </footer>
-        </div>
-      </div>
-
-      {/* 담보 상세 설정 팝업 */}
+      {/* 담보 상세 설정 팝업 (모달) */}
       {selectedPropertyId && activeProperty && (
         <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in no-print">
           <div className="bg-white w-full max-w-lg rounded-[4rem] shadow-2xl overflow-hidden border-t-[14px] border-green-600 animate-fade-in">
             <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <div>
                 <h3 className="text-2xl font-black text-gray-800">담보 상세 설정</h3>
-                <p className="text-[11px] font-black text-green-600 uppercase mt-1">Property Technical Analysis</p>
+                <p className="text-[11px] font-black text-green-600 uppercase mt-1">Property Analysis Data</p>
               </div>
               <button onClick={() => setSelectedPropertyId(null)} className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center font-bold text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all text-2xl shadow-sm">×</button>
             </div>
@@ -527,24 +434,24 @@ const App: React.FC = () => {
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">지번/호수</label>
-                  <input type="text" className="w-full p-5 bg-gray-50 rounded-2xl text-sm font-bold outline-none border-2 border-transparent focus:border-green-500 transition-colors" value={activeProperty.lotNumber} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === activeProperty.id ? {...p, lotNumber: e.target.value} : p)})} placeholder="예: 123-4번지" />
+                  <input type="text" className="w-full p-5 bg-gray-50 rounded-2xl text-sm font-bold outline-none border-2 border-transparent focus:border-green-500 transition-all" value={activeProperty.lotNumber} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === activeProperty.id ? {...p, lotNumber: e.target.value} : p)})} placeholder="예: 101-2번지" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">실제 용도</label>
-                  <input type="text" className="w-full p-5 bg-gray-50 rounded-2xl text-sm font-bold outline-none border-2 border-transparent focus:border-green-500 transition-colors" value={activeProperty.usage} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === activeProperty.id ? {...p, usage: e.target.value} : p)})} placeholder="예: 상가주택" />
+                  <input type="text" className="w-full p-5 bg-gray-50 rounded-2xl text-sm font-bold outline-none border-2 border-transparent focus:border-green-500 transition-all" value={activeProperty.usage} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === activeProperty.id ? {...p, usage: e.target.value} : p)})} placeholder="예: 상업용" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">대분류</label>
-                  <select className="w-full p-5 bg-gray-50 rounded-2xl text-sm font-bold outline-none" value={activeProperty.majorCategory} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === activeProperty.id ? {...p, majorCategory: e.target.value, minorCategory: MINOR_CATEGORIES[e.target.value][0]} : p)})}>
+                  <select className="w-full p-5 bg-gray-50 rounded-2xl text-sm font-bold outline-none border-2 border-transparent focus:border-green-500" value={activeProperty.majorCategory} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === activeProperty.id ? {...p, majorCategory: e.target.value, minorCategory: MINOR_CATEGORIES[e.target.value][0]} : p)})}>
                     {MAJOR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">소분류</label>
-                  <select className="w-full p-5 bg-gray-50 rounded-2xl text-sm font-bold outline-none" value={activeProperty.minorCategory} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === activeProperty.id ? {...p, minorCategory: e.target.value} : p)})}>
+                  <select className="w-full p-5 bg-gray-50 rounded-2xl text-sm font-bold outline-none border-2 border-transparent focus:border-green-500" value={activeProperty.minorCategory} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === activeProperty.id ? {...p, minorCategory: e.target.value} : p)})}>
                     {MINOR_CATEGORIES[activeProperty.majorCategory]?.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
@@ -553,16 +460,16 @@ const App: React.FC = () => {
               <div className="p-8 bg-green-50 rounded-[3rem] space-y-6">
                 <div className="space-y-2">
                   <label className="text-[11px] font-black text-green-700 uppercase tracking-widest">감정평가액 (천원)</label>
-                  <input type="number" className="w-full p-5 bg-white rounded-2xl text-2xl font-black text-green-800 outline-none border-2 border-transparent focus:border-green-400 transition-all" value={activeProperty.appraisalValue || ""} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === activeProperty.id ? {...p, appraisalValue: Number(e.target.value)} : p)})} />
+                  <input type="number" className="w-full p-5 bg-white rounded-2xl text-2xl font-black text-green-800 outline-none border-2 border-transparent focus:border-green-400 transition-all shadow-inner" value={activeProperty.appraisalValue || ""} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === activeProperty.id ? {...p, appraisalValue: Number(e.target.value)} : p)})} />
                 </div>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[11px] font-black text-green-700 uppercase tracking-widest">LTV (%)</label>
-                    <input type="number" className="w-full p-5 bg-white rounded-2xl text-2xl font-black text-green-800 outline-none border-2 border-transparent focus:border-green-400 transition-all" value={activeProperty.itemLtv} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === activeProperty.id ? {...p, itemLtv: Number(e.target.value)} : p)})} />
+                    <input type="number" className="w-full p-5 bg-white rounded-2xl text-2xl font-black text-green-800 outline-none border-2 border-transparent focus:border-green-400 transition-all shadow-inner" value={activeProperty.itemLtv} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === activeProperty.id ? {...p, itemLtv: Number(e.target.value)} : p)})} />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black text-red-700 uppercase tracking-widest">방공제/차감 (천원)</label>
-                    <input type="number" className="w-full p-5 bg-white rounded-2xl text-2xl font-black text-red-800 outline-none border-2 border-transparent focus:border-red-400 transition-all" value={activeProperty.seniorDeduction || ""} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === activeProperty.id ? {...p, seniorDeduction: Number(e.target.value)} : p)})} />
+                    <label className="text-[11px] font-black text-red-700 uppercase tracking-widest">차감/방공제 (천원)</label>
+                    <input type="number" className="w-full p-5 bg-white rounded-2xl text-2xl font-black text-red-800 outline-none border-2 border-transparent focus:border-red-400 transition-all shadow-inner" value={activeProperty.seniorDeduction || ""} onChange={e => setLoanState({...loanState, properties: loanState.properties.map(p => p.id === activeProperty.id ? {...p, seniorDeduction: Number(e.target.value)} : p)})} />
                   </div>
                 </div>
               </div>
@@ -584,7 +491,7 @@ const App: React.FC = () => {
                 onClick={() => setSelectedPropertyId(null)} 
                 className="flex-[2] py-5 bg-green-600 text-white rounded-2xl font-black shadow-xl shadow-green-100 hover:bg-green-700 transition-all active:scale-95"
               >
-                설정 완료
+                저장 후 닫기
               </button>
             </div>
           </div>
